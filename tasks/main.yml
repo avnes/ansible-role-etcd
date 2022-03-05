@@ -1,0 +1,40 @@
+---
+- name: Install required software
+  package:
+    name: unzip
+    state: present
+
+- name: Set download directory if install only for the user
+  set_fact:
+    etcd_runtime_dir: "{{ ansible_user_dir }}/bin"
+  when: not etcd_for_all_users | bool
+
+- name: Set download directory for all users to use
+  set_fact:
+    etcd_runtime_dir: "/usr/local/bin"
+  when: etcd_for_all_users | bool
+
+- name: Create bin directory in users home if necessary for local install
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/bin"
+    state: directory
+    mode: 0755
+  when: not etcd_for_all_users | bool
+
+- name: Download and unzip file
+  unarchive:
+    src: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+  changed_when: False
+
+- name: Copy files to runtime directory
+  copy:
+    src: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/{{ item }}"
+    dest: "{{ etcd_runtime_dir }}"
+    mode: 0755
+    remote_src: yes
+  with_items:
+    - etcd
+    - etcdctl
+    - etcdutl

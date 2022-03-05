@@ -1,0 +1,33 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  vars:
+    etcd_for_all_users: true
+  tasks:
+    - name: Set download directory if install only for the user
+      set_fact:
+        etcd_runtime_dir: "{{ ansible_user_dir }}/bin"
+      when: not etcd_for_all_users | bool
+
+    - name: Set download directory for all users to use
+      set_fact:
+        etcd_runtime_dir: "/usr/local/bin"
+      when: etcd_for_all_users | bool
+
+    - name: Find the etcd file
+      ansible.builtin.stat:
+        path: "{{ etcd_runtime_dir }}/etcd"
+      register: etcd_file
+
+    - name: Print stat info
+      debug:
+        msg: "{{ etcd_file.stat }}"
+
+    - name: Assert that etcd exists
+      assert:
+        that: etcd_file.stat.exists
+
+    - name: Assert that etcd is executable
+      assert:
+        that: etcd_file.stat.executable
